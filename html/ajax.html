@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <script>
+            function upload() {
+                let progress = document.getElementById('progress');
+                let formData = new FormData(document.getElementById('fileForm'));
+                let xhr = new XMLHttpRequest();
+                xhr.open('POST', 'http://localhost:3000/upload');
+                xhr.setRequestHeader('Content-Type', 'multipart/form-data');
+                xhr.onprogress = (event) => {
+                    console.log(`loaded: ${event.loaded}, total: ${event.total}`);
+                }
+                xhr.upload.onprogress = (event) => {
+                    progress.value = event.loaded * 100 / event.total;
+                    console.log(`upload loaded: ${event.loaded}, total: ${event.total}`);
+                }
+                xhr.onreadystatechange = () => {
+                    if(xhr.readyState === xhr.DONE) {
+                        progress.value = 100;
+                    }
+                }
+                xhr.send(formData);
+            }
+            function download() {
+                let filename = document.getElementById('filename');
+                let progress = document.getElementById('progress2');
+                let xhr = new XMLHttpRequest();
+                xhr.open('GET', `http://localhost:3000/download/${filename.value}`);
+                xhr.setRequestHeader('Content-Type', 'multipart/form-data');
+                xhr.onprogress = (event) => {
+                    // progress.value = event.loaded * 100 / event.total;
+                    console.log(`loaded: ${event.loaded}, total: ${event.total}`);
+                }
+                xhr.onreadystatechange = () => {
+                    console.log(xhr.readyState);
+                    if(xhr.readyState === xhr.DONE) {
+                        progress.value = 100;
+                    }
+                }
+                xhr.send();
+            }
+        </script>
+    </head>
+    <body>
+        <form id="fileForm">
+            <input type="file" name="file">
+            <input type="button" onclick="upload();" value="submitForm"/>
+        </form>
+        <progress id="progress" value="0" max="100"></progress>
+        <hr/>
+        <input id="filename"/>
+        <button onclick="download()">donwload</button>
+        <progress id="progress2" value="0" max="100"></progress>
+    </body>
+</html>

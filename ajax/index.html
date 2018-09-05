@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <title>AJAX文件上传-下载，进度监控</title>
+        <link ref="stylesheet" href="css/main.css">
+        <script src="js/main.js"></script>
+    </head>
+    <body>
+        <form id="fileForm">
+            <input type="file" name="file" multiple="multiple" onchange="changeFileChoose(event)">
+            <input type="button" onclick="upload();" value="submitForm"/>
+        </form>
+        <div class="file-list" id="fileList"></div>
+        <progress id="progress" value="0" max="100"></progress>
+        <hr/>
+        <input id="filename"/>
+        <button onclick="download()">donwload</button>
+        <progress id="progress2" value="0" max="100"></progress>
+    </body>
+</html>

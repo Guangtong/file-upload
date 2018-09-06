@@ -1,6 +1,35 @@
+let xhrs = [];
+let isSeparate = false;
+/**
+ * 文件上传
+ */
 function upload() {
-    let progress = document.getElementById('progress');
     let formData = new FormData(document.getElementById('fileForm'));
+    if (isSeparate) {
+        // 过滤掉没有选择文件时候的传递
+        formData.getAll('file').filter(file => {
+            return file.name
+        }).forEach((file,index) => {
+            let separateFormData = new FormData();
+            separateFormData.set('file',file);
+            let xhr = createXhr(separateFormData, index);
+            xhrs.push(xhr);
+        })
+    } else {
+        let xhr = createXhr(formData);
+        xhrs.push(xhr);
+    }
+}
+
+function createXhr(formData, index) {
+    let progress, pgValue;
+    if (index !== undefined) {
+        progress = document.querySelector(`#fp${index}`);
+        pgValue = document.querySelector(`#fpv${index}`);
+    } else {
+        progress = document.querySelector('#progress');
+        pgValue = document.querySelector('#pgValue');
+    }
     let xhr = new XMLHttpRequest();
     xhr.open('POST', 'http://localhost:3000/upload');
     xhr.setRequestHeader('Content-Type', 'multipart/form-data');
@@ -11,6 +40,7 @@ function upload() {
     xhr.upload.onprogress = (event) => {
         console.log('upload onprogress', event)
         progress.value = event.loaded * 100 / event.total;
+        pgValue.textContent = (progress.value).toFixed(2) + '%';
         console.log(`upload loaded: ${event.loaded}, total: ${event.total}`);
     }
     xhr.onreadystatechange = () => {
@@ -18,26 +48,26 @@ function upload() {
             progress.value = 100;
         }
     }
-    xhr.send(formData);
-}
-
-function download() {
-    let filename = document.getElementById('filename');
-    let progress = document.getElementById('progress2');
-    let xhr = new XMLHttpRequest();
-    xhr.open('GET', `http://localhost:3000/download/${filename.value}`);
-    xhr.setRequestHeader('Content-Type', 'multipart/form-data');
-    xhr.onprogress = (event) => {
-        // progress.value = event.loaded * 100 / event.total;
-        console.log(`loaded: ${event.loaded}, total: ${event.total}`);
+    xhr.onabort = (event) => {
+        console.log('file abort:', event)
     }
-    xhr.onreadystatechange = () => {
-        console.log(xhr.readyState);
-        if(xhr.readyState === xhr.DONE) {
-            progress.value = 100;
+    xhr.send(formData);
+    return xhr;
+}
+/**
+ * 取消上传
+ * @param {*} index xhr队列
+ */
+function abort(index) {
+    if (xhrs.length > 0) {
+        if (index !== undefined && index !== null) {
+            xhrs[index].abort();
+        } else {
+            xhrs.forEach(xhr => {
+                xhr.abort();
+            })
         }
     }
-    xhr.send();
 }
 /**
  * 文件change事件
@@ -59,6 +89,23 @@ function changeFileChoose(event) {
         //添加文件信息
         p.textContent = `File name: ${file.name}, File size: ${returnFileSize(file.size)}`;
         el.appendChild(p);
+        if (isSeparate) {
+            let progress = document.createElement('progress');
+            progress.id = `fp${i}`;
+            progress.value = 0;
+            progress.max = 100;
+            el.appendChild(progress);
+            let pValue = document.createElement('span');
+            pValue.textContent = '0%';
+            pValue.id = `fpv${i}`
+            el.appendChild(pValue);
+            let button = document.createElement('button');
+            button.onclick = () => {
+                abort(i);
+            }
+            button.textContent = '取消';
+            el.appendChild(button);
+        }
         // 添加图片预览
         if (validateImage(file.type)) {
             let image = document.createElement('img');
@@ -90,4 +137,24 @@ function returnFileSize(size) {
     } else if(size >= 1048576) {
       return (size/1048576).toFixed(1) + 'MB';
     }
-  }
+}
+
+
+function download() {
+    let filename = document.getElementById('filename');
+    let progress = document.getElementById('progress2');
+    let xhr = new XMLHttpRequest();
+    xhr.open('GET', `http://localhost:3000/download/${filename.value}`);
+    xhr.setRequestHeader('Content-Type', 'multipart/form-data');
+    xhr.onprogress = (event) => {
+        // progress.value = event.loaded * 100 / event.total;
+        console.log(`loaded: ${event.loaded}, total: ${event.total}`);
+    }
+    xhr.onreadystatechange = () => {
+        console.log(xhr.readyState);
+        if(xhr.readyState === xhr.DONE) {
+            progress.value = 100;
+        }
+    }
+    xhr.send();
+}

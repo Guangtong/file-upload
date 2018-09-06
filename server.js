@@ -42,7 +42,7 @@ http.createServer((req, res) => {
             }
             let rems = [];
             // 根据/r/n来拆分数据和报头，其中/r的ASCII为13，/n的ASCII为10，由于文件首位照应，所以需要那前后一致对内容来做匹配，其他内容作为buffer写出
-            // 以下添加序列字符+2都是为了去掉/r/n的分割
+            // 以下添加序列字符+2都是为了去掉/r/n的分割，除开分割行'-----'每一行的前面会有换行\r\n
             // multipart/form-data上传的数据格式
             // ------WebKitFormBoundarytBtkoYcpqn4hvqSC
             // Content-Disposition: form-data; name="file"; filename="log.txt"
@@ -56,38 +56,45 @@ http.createServer((req, res) => {
                     rems.push(i);
                 }
             }
-            // 按照每6个进行解析
-            console.log('rems', rems);
-            for (let i = 0; i < rems.length; i = i + 5) {
-                // 获取Content-Disposition行
-                let contentDisposition =  buf.slice(rems[i] + 2, rems[i+1]).toString();
-                console.log('contentDisposition', contentDisposition);
+            console.log('rems', rems)
+            // FormData传递的时候会使用一个字符串分割表单数据，所以通过这个字符串分割表单数据
+            // 找到文件之间的分隔符
+            let startTag = buf.slice(0, rems[0]).toString().replace('\r\n', '');
+            // console.log('startTag', startTag)
+            for (let i = 0; i < rems.length - 1;) {
+                let contentDisposition =  buf.slice(rems[i] + 2, rems[i + 1]).toString();
+                // console.log('contentDisposition', contentDisposition)
                 let filename = contentDisposition.substring(contentDisposition.indexOf('filename=') + 10 , contentDisposition.length - 1);
-                console.log('filename', filename);
-                // 获取文件主体
-                let file = buf.slice(rems[i + 3] + 2, rems[i + 4]);
-                console.log('file', file);
-                // 文件流写文件
-                fs.writeFile(`${filename}`, file, (err) => {
-                    if (err) {
-                        console.log('write file fail', err)
-                    } else {
-                        console.log(`write file success: ${filename}`)
+                // 判断是否有文件名的属性，一般情况下上传是单独处理，但是存在和表单一起提交的情况，所以增加验证，如果是非文件那么要跳过这一次的文件写入
+                let isFile = true;
+                if (contentDisposition.indexOf('filename=') === -1 || filename === '') {
+                    isFile = false;
+                }
+                let j = i;
+                // 获取到终点的位置
+                while(true) {
+                    let tag = buf.slice(rems[j] + 2, rems[j + 1]).toString();
+                    if (tag.startsWith(startTag)) {
+                        break;
                     }
-                });
+                    j++;
+                }
+                if (isFile) {
+                    // console.log('i:' + i, 'j:' + j)
+                    // 文件数据信息从第4行开始到到分隔符前的位置
+                    let file = buf.slice(rems[i + 3] + 2, rems[j]);
+                    // console.log('filename', filename);
+                    // 文件流写文件
+                    fs.writeFile(`${filename}`, file, (err) => {
+                        if (err) {
+                            console.log('write file fail', err)
+                        } else {
+                            console.log(`write file success: ${filename}`)
+                        }
+                    });
+                }
+                i = j + 1;
             }
-            // 获取文件名
-            // let msg = buf.slice(rems[0] + 2, rems[1]).toString();
-            // let filename = msg.substring(msg.indexOf('filename=') + 10 , msg.length - 1);
-            // // 获取数据主体
-            // let file = buf.slice(rems[3] + 2, rems[rems.length - 2]);
-            // fs.writeFile(`${filename}`, file, (err) => {
-            //     if (err) {
-            //         res.end(err.message);
-            //     } else {
-            //         res.end('success');
-            //     }
-            // })
             res.end('success');
         })
     }

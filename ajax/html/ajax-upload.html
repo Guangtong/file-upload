@@ -1,8 +1,8 @@
 <html>
     <head>
-        <title>AJAX文件上传-下载，进度监控</title>
-        <link ref="stylesheet" href="css/main.css">
-        <script src="js/main.js"></script>
+        <title>AJAX文件上传-表单</title>
+        <script src="../js/core.js"></script>
+        <script src="../js/ajax-upload.js"></script>
     </head>
     <body>
         <form id="fileForm">
@@ -13,9 +13,5 @@
         <progress id="progress" value="0" max="100"></progress>
         <span id="pgValue">0%</span>
         <button onclick="abort()">取消上传</button>
-        <hr/>
-        <input id="filename"/>
-        <button onclick="download()">donwload</button>
-        <progress id="progress2" value="0" max="100"></progress>
     </body>
 </html>
